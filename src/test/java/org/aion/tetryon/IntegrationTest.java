@@ -9,7 +9,10 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
-import org.junit.*;
+import org.junit.Assert;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import javax.tools.*;
@@ -87,6 +90,9 @@ public class IntegrationTest {
         optionList.add("--release");
         optionList.add("10");
 
+        optionList.add("-d");
+        optionList.add(new File("out/test/classes").getCanonicalPath());
+
         optionList.add("-classpath");
         optionList.add(System.getProperty("java.class.path") + ";" + cp);
 
@@ -112,10 +118,6 @@ public class IntegrationTest {
         return r;
     }
 
-    @BeforeClass
-    public static void before() throws IOException, InterruptedException {
-    }
-
     @ClassRule
     public static AvmRule avmRule = new AvmRule(true);
     private static Address sender = avmRule.getPreminedAccount();
@@ -125,6 +127,8 @@ public class IntegrationTest {
 
     @Test
     public void preimageTest() throws IOException, ParseException, InterruptedException, ClassNotFoundException {
+        FileUtils.deleteDirectory(new File("out/test/classes/org/acme"));
+
         String ps = "g16";
         File testFolder = folder.newFolder("preimage");
         File codeFile = folder.newFile("preimage/root.code");
@@ -157,15 +161,24 @@ public class IntegrationTest {
 
         // OK, now that we have the contract, deploy it!
         List<String> classes = Arrays.asList("Verifier.java", "Fp.java", "Fp2.java", "G1.java", "G1Point.java", "G2.java", "G2Point.java", "Pairing.java", "Util.java");
+
+        /*
+        // javac --release 10 -cp "lib/*" Verifier.java Fp.java Fp2.java G1.java G1Point.java G2.java G2Point.java Pairing.java Util.java
+        ArrayList<String> compileCmd = new ArrayList<>(Arrays.asList("javac", "--release", "10", "-cp", "\"" + testFolder.getCanonicalPath() + "/lib/*\""));
+        compileCmd.addAll(classes);
+        call(compileCmd, new File(testFolder.getCanonicalPath() + "/avm-verifier/"));*/
+
+
         ArrayList<Class<?>> loaded = new ArrayList<>();
-        URLClassLoader classLoader = new URLClassLoader(new URL[]{new File(testFolder.getCanonicalPath() + "/avm-verifier/").toURI().toURL()});
+        //URLClassLoader classLoader = new URLClassLoader(new URL[]{new File(testFolder.getCanonicalPath() + "/avm-verifier/").toURI().toURL()});
 
         for (String c : classes) {
             boolean didCompile = compile(new File(testFolder.getCanonicalPath() + "/avm-verifier/" + c));
             if (didCompile) {
-                loaded.add(classLoader.loadClass("org.acme.tetryon." + c.substring(0, c.lastIndexOf('.'))));
+                loaded.add(ClassLoader.getSystemClassLoader().loadClass("org.acme.tetryon." + c.substring(0, c.lastIndexOf('.'))));
             }
         };
+
 
         byte[] dappBytes = avmRule.getDappBytes(loaded.get(0), null, 1, loaded.subList(1, loaded.size()).toArray(new Class<?>[loaded.size()-1]));
         AvmRule.ResultWrapper w = avmRule.deploy(sender, BigInteger.ZERO, dappBytes);
