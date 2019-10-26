@@ -5,12 +5,23 @@ import org.aion.avm.embed.AvmRule;
 import org.aion.avm.tooling.ABIUtil;
 import org.aion.avm.userlib.abi.ABIDecoder;
 import org.aion.types.TransactionStatus;
+import org.apache.commons.io.FileUtils;
+import org.json.simple.parser.ParseException;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import java.io.File;
+import java.io.IOException;
 import java.math.BigInteger;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.aion.tetryon.Verifier.Proof;
 
 public class VerifierTest {
 
@@ -22,44 +33,56 @@ public class VerifierTest {
 
     @BeforeClass
     public static void deployDapp() {
+        /*
         byte[] g16DappBytes = avmRule.getDappBytes(Verifier.class, null, 1,
                 Fp.class, Fp2.class, G1.class, G1Point.class, G2.class, G2Point.class, Pairing.class, Util.class);
         AvmRule.ResultWrapper w = avmRule.deploy(sender, BigInteger.ZERO, g16DappBytes);
         Assert.assertTrue (w.getTransactionResult().energyUsed < 1_500_000);
-        contract = w.getDappAddress();
+        contract = w.getDappAddress();*/
     }
 
     // positive test-case for square pre-image verifier: a=337, b=113569 (a^2 == b)
+    /*
     @Test
-    public void g16TestVerify() {
-        G1Point a = new G1Point(
-                new Fp(new BigInteger("07f4a1ab12b1211149fa0aed8ade3442b774893dcd1caffb8693ade54999c164", 16)),
-                new Fp(new BigInteger("23b7f10c5e1aeaffafa088f1412c0f307969ba3f8f9d5920214a4cb91693fab5", 16)));
+    public void g16TestVerify1() throws IOException, ParseException {
+        final String generatedProof = FileUtils.readFileToString(new File( "src/test/resources/preimage-proof.json"), (String) null);
 
-        G2Point b = new G2Point(
-                new Fp2(new BigInteger("1f6cc814cf1df1ceb663378c496f168bcd21e19bb529e90fcf3721f8df6b4128", 16),
-                        new BigInteger("079ee30e2c79e15be67645838a3177f681ab111edacf6f4867e8eed753ed9681", 16)),
-                new Fp2(new BigInteger("2779dd0accaa1391e29ad54bf065819cac3129edda4eaf909d6ea2c7495a47f7", 16),
-                        new BigInteger("20105b11ae5fbdc7067102d4260c8913cdcb512632680221d7644f9928a7e51d", 16)));
+        Proof proof = TestUtil.parseProof(generatedProof);
+        BigInteger[] input = TestUtil.parseInput(generatedProof);
 
-        G1Point c = new G1Point(
-                new Fp(new BigInteger("153c3a313679a5c11010c3339ff4f787246ed2e8d736efb615aeb321f5a22432", 16)),
-                new Fp(new BigInteger("06691d8441c35768a4ca87a5f5ee7d721bf13115d2a16726c12cda295a19bf09", 16)));
+        byte[] txData = ABIUtil.encodeMethodArguments("verify", input, proof.serialize());
+        AvmRule.ResultWrapper b = avmRule.call(sender, contract, BigInteger.ZERO, txData);
 
+        Assert.assertTrue(b.getReceiptStatus().isSuccess());
+        Assert.assertTrue(b.getTransactionResult().energyUsed < 500_000);
+        Assert.assertTrue(new ABIDecoder(b.getTransactionResult().copyOfTransactionOutput().orElseThrow()).decodeOneBoolean());
+    }*/
 
-        BigInteger[] input = new BigInteger[]{
-                new BigInteger("000000000000000000000000000000000000000000000000000000000001bba1", 16),
-                new BigInteger("0000000000000000000000000000000000000000000000000000000000000001", 16)};
+    @Test
+    public void g16TestVerify2() throws IOException, ParseException, ClassNotFoundException {
+        final String generatedProof = FileUtils.readFileToString(new File( "src/test/resources/preimage-proof.json"), (String) null);
 
-        byte[] txData = ABIUtil.encodeMethodArguments("verify", input, new Verifier.Proof(a, b, c).serialize());
-        AvmRule.ResultWrapper w = avmRule.call(sender, contract, BigInteger.ZERO, txData);
+        Proof proof = TestUtil.parseProof(generatedProof);
+        BigInteger[] input = TestUtil.parseInput(generatedProof);
 
-        // transaction should succeed
-        Assert.assertTrue(w.getReceiptStatus().isSuccess());
-        // transaction should not cost too much
-        Assert.assertTrue(w.getTransactionResult().energyUsed < 500_000);
-        // verify should return "true"
-        Assert.assertTrue(new ABIDecoder(w.getTransactionResult().copyOfTransactionOutput().orElseThrow()).decodeOneBoolean());
+        byte[] txData = ABIUtil.encodeMethodArguments("verify", input, proof.serialize());
+
+        URLClassLoader classLoader = new URLClassLoader(new URL[]{new File( "src/test/resources/classes/").toURI().toURL()});
+        List<String> classes = Arrays.asList("Verifier.java", "Fp.java", "Fp2.java", "G1.java", "G1Point.java", "G2.java", "G2Point.java", "Pairing.java", "Util.java");
+        ArrayList<Class<?>> loaded = new ArrayList<>();
+        for (String c : classes) {
+            loaded.add(classLoader.loadClass("org.acme.tetryon." + c.substring(0, c.lastIndexOf('.'))));
+        }
+
+        byte[] dappBytes = avmRule.getDappBytes(loaded.get(0), null, 2, loaded.subList(1, loaded.size()).toArray(new Class<?>[loaded.size()-1]));
+        AvmRule.ResultWrapper r = avmRule.deploy(sender, BigInteger.ZERO, dappBytes);
+        Assert.assertTrue (r.getTransactionResult().energyUsed < 1_500_000);
+        Address l = r.getDappAddress();
+
+        AvmRule.ResultWrapper rw = avmRule.call(sender, l, BigInteger.ZERO, txData);
+        Assert.assertTrue(rw.getReceiptStatus().isSuccess());
+        Assert.assertTrue(rw.getTransactionResult().energyUsed < 500_000);
+        Assert.assertTrue(new ABIDecoder(rw.getTransactionResult().copyOfTransactionOutput().orElseThrow()).decodeOneBoolean());
     }
 
     // negative test-case for square pre-image verifier: a=337, b=113570 (a^2 != b)
@@ -87,11 +110,8 @@ public class VerifierTest {
         byte[] txData = ABIUtil.encodeMethodArguments("verify", input, new Verifier.Proof(a, b, c).serialize());
         AvmRule.ResultWrapper w = avmRule.call(sender, contract, BigInteger.ZERO, txData);
 
-        // transaction should succeed
         Assert.assertTrue(w.getReceiptStatus().isSuccess());
-        // transaction should not cost too much
         Assert.assertTrue(w.getTransactionResult().energyUsed < 500_000);
-        // verify should return "false"
         Assert.assertFalse(new ABIDecoder(w.getTransactionResult().copyOfTransactionOutput().orElseThrow()).decodeOneBoolean());
     }
 

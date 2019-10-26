@@ -1,4 +1,3 @@
-// This file is MIT Licensed
 package org.aion.tetryon;
 
 public class Util {

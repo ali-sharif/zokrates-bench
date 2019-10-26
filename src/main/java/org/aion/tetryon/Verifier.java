@@ -66,15 +66,15 @@ public class Verifier {
     }
 
     protected static VerifyingKey verifyingKey() {
-        G1Point alpha = new G1Point("01547529271a00eaf749789330629eb1a2aa2bb0691db18f98569772de954a2f", "0f8ae429d12d4e5e333ad7031feb226f79f85a6677c15c45fcde66bea86f685f");
-        G2Point beta = new G2Point("2a5ddc34c7788247b152d9f6b01661d16384e53b676d3b96354b1ec40b56f56d", "0e54b09d7ec2c87099db915a83adc5016f8b3a4b0e9350feb4d9be8cd397065e", "23bfd1c3310e76eda49a8a3f47d34273644a78fd206ed982a78922283ca2d9cb", "1d68c87e42499f1088c988ef58ab70aa8e8bc878bc915e84a2bf04d3718824c8");
-        G2Point gamma = new G2Point("1545f702fdd1e2f26cde710f08d68d45a9f51de289ab1f4facb56e26b8094dea", "010030835d4b3299add584e54552213a37638cf6bffa478796c12e6b2190eaba", "26e56a63b2a991826f343d6aac1424ca1b7474fbe43daad27945a81fd0ae1860", "1f1320cfd11a7c9ff2e8c36c49688a169679709ee23cf0d1902a7804e1c5050c");
-        G2Point delta = new G2Point("292afd1bc2a1aebb9ff9c85bd59c9993c258f89b2e56eb34d22719bd047a28bf", "2e55b4b7f9098aae210d8157eaaae03723f99ef7d2f1dd5100c384552d670b68", "02624645c544088bc9d730944ceddc2bc662c2c28860a857a2d72f4a9e4b8670", "005dc2063c9e3d1e45d1d6d26ec88b092c8d03ffaedc61d31b1779c0d700fc4a");
+        G1Point alpha = new G1Point("1dc8a0ebb4f541c3679cb60d3795dc3cfb097aaff30467d91b9017d206a1d4e4", "06994926e37eb64cb24470350a08ccecdbf1c7478dc546c02851d17424893549");
+        G2Point beta = new G2Point("19dab2132678b12735f08a85fd9d3a2b7a184c13f4e43d872fb6478fdb183682", "0b4ef55df16dc49ea2ab766929bea33032f3c11c28b98bba018dcdf94bdb5273", "1ca80bc8441ff9c3699f6606272512f13395a281c8d174a1ca87366bb7c7bb55", "19bfbdd6463abb050fcc66675a13e4cfd5d40003811cb4771966367b86e361a9");
+        G2Point gamma = new G2Point("29270a9912f65608c640da9efe9c8e165450dc5765c54efa4d52fc0afec16d38", "28d878253d1fdd503c042ac9b7074867ed113de6413e38957404beb6d2ea204d", "0b6606a2627b5082a0b9842719a09b73e40bc6440f949809dae06b72d9c3a399", "0acccc4f0e11c8c7c96b6248c6b809dbd420c6649e25e55eabb87c3a0691a0ac");
+        G2Point delta = new G2Point("0592ce212b555e3c08dc31365c2f7c39f7affa5dd31416bb7aaf0851a4a08af6", "278539b4b78c2a6b3fb7a31aa6c709adee3ed805d0bcfeeb3c53ee7816be60bd", "1f6b23353066c83a6d294380c9ee0683089f3b674c707ae2a76f83f143b4925c", "118d6a29fbadbfb6ff27be349b7b0ea6ffc9367f66ea60c78e566a745b66ca6b");
 
         G1Point[] gamma_abc = new G1Point[3];
-        gamma_abc[0] = new G1Point("0c0252111c0de9298e623b339c89958ddbb540b73bb1a9d5451dbe40291f128e", "2d1aa8415e72e896a8b5a863fc12bafb6948bead6a013a97389bfa0477d2c7de");
-        gamma_abc[1] = new G1Point("0548ae50b34e4c50cdfd98f5d3710a9bca0b5d61b78ddaad4548d07d10875c2f", "237f6cdac56979fba82e7a6beaf604c2f067bea54bfc3876ab95669cfdba89ed");
-        gamma_abc[2] = new G1Point("081347b6d70f5e86a90efd64e26d290e6a156ece5cadc2b930f49bef44af33ff", "0e8dfbc24243a53a20448f98b4d3b8d1a819464634f03c4f6d46050cf2e1a0b3");
+        gamma_abc[0] = new G1Point("0e46ec36856b635e570d75153cd2260c90754aa8118e4f165415a17aed4ba598", "1db67ad265b973c14233d83f1bbb739cbf17cc1d9c01ac13867f182c3687fbec");
+        gamma_abc[1] = new G1Point("260cad885d88694caa43d9137074e00f5915cdcd6089476e59fa3f06d9f6889c", "29f2d3f36cba52000d1de4337724ce393462061e07beb54fc7db06b8a40e368f");
+        gamma_abc[2] = new G1Point("11e0c137010695df157d9cf737d124dcaf67d606738310840b4a66ff348e4a9a", "07f8bb61f0f8d00e16cabaabaa1c96cfd7d5692ce290fd3c94bc31ad57dfa60d");
 
         return new VerifyingKey(alpha, beta, gamma, delta, gamma_abc);
     }
@@ -113,6 +113,7 @@ public class Verifier {
 
     @Callable
     public static boolean verify(BigInteger[] input, byte[] proof) {
+        Blockchain.println("verify called!");
         try {
             return verify(input, Proof.deserialize(proof));
         } catch (Exception e) {

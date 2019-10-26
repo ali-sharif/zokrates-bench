@@ -1,4 +1,3 @@
-// This file is MIT Licensed
 package org.aion.tetryon;
 
 import java.math.BigInteger;
@@ -11,8 +10,8 @@ public class G1Point {
     public final Fp y;
 
     public G1Point(String x, String y) {
-        this.x = new Fp(new BigInteger(x));
-        this.y = new Fp(new BigInteger(y));
+        this.x = new Fp(new BigInteger(x, 16));
+        this.y = new Fp(new BigInteger(y, 16));
     }
 
     public G1Point(Fp x, Fp y) {
